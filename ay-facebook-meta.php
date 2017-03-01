@@ -14,24 +14,50 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-add_action( 'wp_head', 'wp_new_user_notification' );
+add_action( 'wp_head', 'ay_facebook_meta_tag' );
 
-if ( !function_exists ( 'wp_new_user_notification' ) ) :
+if ( !function_exists ( 'ay_facebook_meta_tag' ) ) :
     function ay_facebook_meta_tag() {
-	if( is_single() ) {
-	?>
-		<meta property="og:title" content"<?php the_title() ?>" />
-		<meta property="og:site_name" content="<?php bloginfo('name') ?>" />
-		<meta property="og:url" content="<?php the_permalink() ?>" />
-		<meta property="og:description" content="<php the_excerpt() ?>" />
-		<meta property="og:type" content="article" />
-		
-		<?php 
-	      	if ( has_post_thumbnail() ) :
-			$image = wp_get_attachment_image_src( get_post_thumbnail_id(), 'large' ); 
-	    	?>
-	      		<meta property="og:image" content="<?php echo $image[0]; ?>"/>  
-		<?php endif;
-	}
+    	global $post;
+
+		if(!is_singular( array('page', 'post'))) {
+			return;
+		} else {
+
+			$post_id = $post->ID;
+			$post_id = apply_filters( 'ay_facebook_meta_tag_id_value', $post_id);
+
+			$type = 'article';
+			$post = get_post($post->ID);
+			$post_content = $post->post_content;
+			$post_content = apply_filters('the_content', $post_content);
+			$post_content = wp_strip_all_tags($post_content);
+			//$post_content = str_replace(']]>', ']]&gt;', $post_content);
+			$post_content = wp_trim_words($post_content, 20);
+
+			$url = get_permalink();
+			$image = wp_get_attachment_image_src(get_post_thumbnail_id($post->ID))[0];
+			$title = get_the_title($post->ID);
+
+			$url = apply_filters( 'ay_facebook_meta_tag_url_value', $url);
+			$type = apply_filters( 'ay_facebook_meta_tag_type_value', $type);
+			$title = apply_filters( 'ay_facebook_meta_tag_title_value', $title);
+			$post_content = apply_filters( 'ay_facebook_meta_tag_description_value', $post_content);
+			$image = apply_filters( 'ay_facebook_meta_tag_image_value', $image);
+
+			ob_start();
+			?>
+			<meta property="og:url"                content="<?php echo $url; ?>" />
+			<meta property="og:type"               content="<?php echo $type; ?>" />
+			<meta property="og:title"              content="<?php echo $title; ?>" />
+			<meta property="og:description"        content="<?php echo $post_content; ?>" />
+			<meta property="og:image"              content="<?php echo $image; ?>" />
+			<?php
+			$content = ob_get_clean();
+
+			$content = apply_filters('ay_facebook_meta_tag_override_function', $content);
+
+			echo $content;
+		}
     }
 endif;
